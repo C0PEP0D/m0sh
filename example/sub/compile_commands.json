@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/rmonthil/Documents/code/modules/m0sh/example/sub/build",
+  "command": "/usr/bin/c++   -I/home/rmonthil/Documents/code/modules/m0sh/example/sub/. -I/home/rmonthil/Documents/code/modules/m0sh/example/sub/../../include -I/home/rmonthil/Documents/code/modules/m0sh/example/sub/../../../../thirdparty/eigen    -std=c++1z -o CMakeFiles/sub.dir/main.cpp.o -c /home/rmonthil/Documents/code/modules/m0sh/example/sub/main.cpp",
+  "file": "/home/rmonthil/Documents/code/modules/m0sh/example/sub/main.cpp"
+}
+]
