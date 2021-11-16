@@ -5,7 +5,7 @@
 // thirdparties includes
 #include <Eigen/Dense>
 // lib includes
-#include "m0sh/regular.h"
+#include "m0sh/uniform.h"
 #include "m0sh/structured_sub.h"
 
 using TypeScalar = double;
@@ -18,10 +18,10 @@ using TypeRef = Eigen::Ref<Args...>;
 template<typename ...Args>
 using TypeContainer = std::vector<Args...>;
 using TypeStructured = m0sh::Structured<TypeVector, TypeRef, TypeContainer>;
-using TypeMesh = m0sh::Regular<TypeVector, TypeRef, TypeContainer>;
+using TypeMesh = m0sh::Uniform<TypeVector, TypeRef, TypeContainer>;
 using TypeSub = m0sh::StructuredSub<TypeVector, TypeRef, TypeContainer>;
 // Data
-// // Regular mesh
+// // Uniform mesh
 const std::size_t n = 100;
 const double length = 1.0;
 const double origin = 0.5;
@@ -35,18 +35,18 @@ void print(const std::shared_ptr<TypeSub>& sMesh, std::uniform_int_distribution<
     std::size_t index;
     // Print info
     ijk = {uniform(e), uniform(e), uniform(e)};
-    x = sMesh->x(ijk);
-    index = sMesh->index(ijk);
-    std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << " index: " << index << " x: \n" << x << std::endl;
-    ijk = sMesh->ijk(x);
+    x = sMesh->positionCell(ijk);
+    index = sMesh->indexCell(ijk);
+    std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << "\nindex: " << index << "\nx: " << x.transpose() << std::endl;
+    ijk = sMesh->ijkCell(x);
     std::cout << "xReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
-    ijk = sMesh->ijk(index);
+    ijk = sMesh->ijkCell(index);
     std::cout << "indexReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
     std::cout << std::endl;
 }
 
 int main () {
-    std::shared_ptr<TypeMesh> sMesh = std::make_shared<TypeMesh>(TypeContainer<std::size_t>(DIM, n), TypeContainer<double>(DIM, length), TypeVector::Constant(origin));
+    std::shared_ptr<TypeMesh> sMesh = std::make_shared<TypeMesh>(TypeContainer<std::size_t>(DIM, n), TypeContainer<double>(DIM, length), TypeVector::Constant(origin), TypeContainer<bool>(DIM, true));
     std::shared_ptr<TypeSub> sSubMesh = std::make_shared<TypeSub>(TypeContainer<std::size_t>(DIM, nSub), offSub, sMesh);
     // Random setup
     std::random_device r;
