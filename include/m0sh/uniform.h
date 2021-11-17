@@ -73,7 +73,7 @@ class Uniform : public Structured<TypeVector, TypeRef, TypeContainer> {
         TypeContainer<int> ijkPoint(const TypeRef<const TypeVector>& position) const override {
             TypeContainer<int> ijk_(nPoints.size());
             for(std::size_t i = 0; i < nPoints.size(); i++) {
-                ijk_[i] = std::floor((position[i] - origin[i] - 0.5 * spacing[i]) / spacing[i]);
+                ijk_[i] = std::floor((position[i] - origin[i] + 0.5 * spacing[i]) / spacing[i]);
             }
             return ijk_;
         };

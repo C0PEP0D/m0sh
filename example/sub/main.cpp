@@ -35,18 +35,18 @@ void print(const std::shared_ptr<TypeSub>& sMesh, std::uniform_int_distribution<
     std::size_t index;
     // Print info
     ijk = {uniform(e), uniform(e), uniform(e)};
-    x = sMesh->positionCell(ijk);
-    index = sMesh->indexCell(ijk);
+    x = sMesh->positionPoint(ijk);
+    index = sMesh->indexPoint(ijk);
     std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << "\nindex: " << index << "\nx: " << x.transpose() << std::endl;
-    ijk = sMesh->ijkCell(x);
+    ijk = sMesh->ijkPoint(x);
     std::cout << "xReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
-    ijk = sMesh->ijkCell(index);
+    ijk = sMesh->ijkPoint(index);
     std::cout << "indexReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
     std::cout << std::endl;
 }
 
 int main () {
-    std::shared_ptr<TypeMesh> sMesh = std::make_shared<TypeMesh>(TypeContainer<std::size_t>(DIM, n), TypeContainer<double>(DIM, length), TypeVector::Constant(origin), TypeContainer<bool>(DIM, true));
+    std::shared_ptr<TypeMesh> sMesh = std::make_shared<TypeMesh>(TypeContainer<std::size_t>(DIM, n), TypeContainer<double>(DIM, length), TypeVector::Constant(origin), TypeContainer<bool>(DIM, false));
     std::shared_ptr<TypeSub> sSubMesh = std::make_shared<TypeSub>(TypeContainer<std::size_t>(DIM, nSub), offSub, sMesh);
     // Random setup
     std::random_device r;

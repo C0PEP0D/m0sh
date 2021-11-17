@@ -28,12 +28,12 @@ void print(const TypeMesh& mesh, std::uniform_int_distribution<int>& uniform, st
     std::size_t index;
     // Print info
     ijk = {uniform(e), uniform(e), uniform(e)};
-    x = mesh.positionCell(ijk);
-    index = mesh.indexCell(ijk);
+    x = mesh.positionPoint(ijk);
+    index = mesh.indexPoint(ijk);
     std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << "\nindex: " << index << "\nx: " << x.transpose() << std::endl;
-    ijk = mesh.ijkCell(x);
+    ijk = mesh.ijkPoint(x);
     std::cout << "xReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
-    ijk = mesh.ijkCell(index);
+    ijk = mesh.ijkPoint(index);
     std::cout << "indexReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
     std::cout << std::endl;
 }
@@ -45,7 +45,7 @@ int main () {
     // Build grid
     TypeContainer<TypeContainer<double>> grid(DIM, axis);
     // Build mesh finally
-    TypeMesh mesh(grid, TypeContainer<bool>(true));
+    TypeMesh mesh(grid, TypeContainer<bool>(DIM, false));
     // Random setup
     std::random_device r;
     std::default_random_engine e(r());

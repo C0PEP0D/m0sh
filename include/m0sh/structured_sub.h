@@ -19,7 +19,7 @@ class StructuredSub : public Structured<TypeVector, TypeRef, TypeContainer> {
         StructuredSub(const TypeContainer<std::size_t>& p_nCells, const TypeContainer<int>& p_offsetCells, const std::shared_ptr<TypeInherited>& p_sMesh) : offsetCells(p_offsetCells), sMesh(p_sMesh) {
             // copy
             nCells = p_nCells;
-            periodic = TypeContainer<bool>(nCells.size(), true);
+            periodic = TypeContainer<bool>(nCells.size(), false);
             // points
             nPoints.resize(nCells.size());
             for(unsigned int i = 0; i < nCells.size(); i++) {

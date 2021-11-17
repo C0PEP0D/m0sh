@@ -99,34 +99,40 @@ class NonUniform : public Structured<TypeVector, TypeRef, TypeContainer> {
         TypeContainer<int> ijkPoint(const TypeRef<const TypeVector>& position) const override {
             // Compute positionPeriodic
             TypeVector positionPeriodic;
+            TypeContainer<int> positionDiv(positionPeriodic.size());
             for(std::size_t i = 0; i < nPoints.size(); i++) {
                 positionPeriodic[i] = std::fmod(std::abs(position[i] - origin[i]), length[i]);
+                positionDiv[i] = std::floor(std::abs(position[i] - origin[i]) / length[i]);
                 if(position[i] < origin[i]) {
                     positionPeriodic[i] = length[i] - positionPeriodic[i];
+                    positionDiv[i] = -positionDiv[i] - 1;
                 }
                 positionPeriodic[i] += origin[i];
             }
             // Compute index
             TypeContainer<int> ijk_(nPoints.size());
             for(std::size_t i = 0; i < nPoints.size(); i++) {
-                ijk_[i] = std::distance(gridCells[i].begin(), std::lower_bound(gridCells[i].begin(), gridCells[i].end(), positionPeriodic[i]));
+                ijk_[i] = std::distance(gridCells[i].begin(), std::lower_bound(gridCells[i].begin(), gridCells[i].end(), positionPeriodic[i])) + positionDiv[i] * nPoints[i];
             }
             return ijk_;
         };
         TypeContainer<int> ijkCell(const TypeRef<const TypeVector>& position) const override {
             // Compute positionPeriodic
             TypeVector positionPeriodic;
+            TypeContainer<int> positionDiv(positionPeriodic.size());
             for(std::size_t i = 0; i < nCells.size(); i++) {
                 positionPeriodic[i] = std::fmod(std::abs(position[i] - origin[i]), length[i]);
+                positionDiv[i] = std::floor(std::abs(position[i] - origin[i]) / length[i]);
                 if(position[i] < origin[i]) {
                     positionPeriodic[i] = length[i] - positionPeriodic[i];
+                    positionDiv[i] = -positionDiv[i] - 1;
                 }
                 positionPeriodic[i] += origin[i];
             }
             // Compute index
             TypeContainer<int> ijk_(nCells.size());
             for(std::size_t i = 0; i < nCells.size(); i++) {
-                ijk_[i] = std::distance(gridPoints[i].begin(), std::lower_bound(gridPoints[i].begin(), gridPoints[i].end(), positionPeriodic[i])) - 1;
+                ijk_[i] = std::distance(gridPoints[i].begin(), std::lower_bound(gridPoints[i].begin(), gridPoints[i].end(), positionPeriodic[i])) - 1 + positionDiv[i] * nCells[i];
             }
             return ijk_;
         };
