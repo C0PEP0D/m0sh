@@ -40,11 +40,10 @@ class NonUniform : public Structured<TypeVector, TypeRef, TypeContainer> {
 			for(unsigned int i = 0; i < nPoints.size(); i++) {
 				if(periodic[i]) {
 					nPoints[i] = gridPoints[i].size() - 1;
-					nCells[i] = gridPoints[i].size() - 1;
 				} else {
 					nPoints[i] = gridPoints[i].size();
-					nCells[i] = gridPoints[i].size() - 1;
 				}
+				nCells[i] = gridPoints[i].size() - 1;
 			}
 		};
 
