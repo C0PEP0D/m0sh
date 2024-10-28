@@ -4,146 +4,126 @@
 
 // std includes
 #include <cmath>
+#include <vector>
 // module includes
 #include "m0sh/structured.h"
 
 namespace m0sh {
 
-template<typename TypeVector, template<typename...> class TypeRef, template<typename...> class TypeContainer>
-class NonUniform : public Structured<TypeVector, TypeRef, TypeContainer> {
+template<typename _tSpaceVector, template<typename...> class _tView, unsigned int _Dim>
+class NonUniform : public Structured<_tSpaceVector, _tView, _Dim> {
 	public:
-		using TypeInherited = Structured<TypeVector, TypeRef, TypeContainer>;
+		using tBase = Structured<_tSpaceVector, _tView, _Dim>;
+		using tSpaceVector = typename tBase::tSpaceVector;
+		template<typename... Args> using tView = typename tBase::tView<Args...>;
 	public:
-		NonUniform(const TypeContainer<TypeContainer<double>>& p_gridPoints, const TypeContainer<bool>& p_periodic) : gridPoints(p_gridPoints) {
-			// copy
-			periodic = p_periodic;
-			// grid
-			gridCells.resize(gridPoints.size());
-			for(unsigned int i = 0; i < gridCells.size(); i++) {
-				gridCells[i].resize(gridPoints[i].size() - 1);
-				for(unsigned int j = 0; j < gridCells[i].size(); j++) {
-					gridCells[i][j] = 0.5 * (gridPoints[i][j] + gridPoints[i][j + 1]);
-				}
-			}
-			// origin
-			for(unsigned int i = 0; i < gridPoints.size(); i++) {
-				origin[i] = gridPoints[i][0];
-			}
-			// length
-			length.resize(gridPoints.size());
-			for(unsigned int i = 0; i < gridPoints.size(); i++) {
-				length[i] = gridPoints[i][gridPoints[i].size() - 1] - gridPoints[i][0];
-			}
-			// points and cells
-			nPoints.resize(gridPoints.size());
-			nCells.resize(gridPoints.size());
-			for(unsigned int i = 0; i < nPoints.size(); i++) {
-				if(periodic[i]) {
-					nPoints[i] = gridPoints[i].size() - 1;
-				} else {
-					nPoints[i] = gridPoints[i].size();
-				}
-				nCells[i] = gridPoints[i].size() - 1;
-			}
-		};
-
-		NonUniform(const std::size_t& dim, const TypeContainer<double>& axisPoints, bool p_periodic) : NonUniform(TypeContainer<TypeContainer<double>>(dim, axisPoints), TypeContainer<bool>(dim, p_periodic)) {
-		};
-
-		NonUniform(const TypeContainer<double>& axisPoints, bool p_periodic) : NonUniform(1, axisPoints, p_periodic) {
+		using tBase::Dim;
+	public:
+		NonUniform(){
+			
 		};
 	public:
-		using TypeInherited::positionPoint;
-		using TypeInherited::positionCell;
-		TypeVector positionPoint(const TypeContainer<int>& ijk) const override {
+		static std::vector<unsigned int> nbPointsPerAxis(const std::vector<double>* pAxesPoints) {
+			std::vector<unsigned int> output(Dim);
+			for(unsigned int i = 0; i < Dim; i++) {
+				output[i] = pAxesPoints[i].size();
+			}
+            return output;
+        };
+    public:
+    	static std::vector<int> ijkPoint(const std::vector<double>* pAxesPoints, const unsigned int index) {
+			std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+			return tBase::ijk(_nbPointsPerAxis.data(), index);
+        };
+        static std::vector<int> ijkPointPeriodic(const std::vector<double>* pAxesPoints, const unsigned int index) {
+			std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+			std::vector<unsigned int> nbCellsPerAxis = tBase::nbCellsPerAxis(_nbPointsPerAxis.data());
+			return tBase::ijk(nbCellsPerAxis.data(), index);
+        };
+        static std::vector<int> ijkCell(const std::vector<double>* pAxesPoints, const unsigned int index) {
+			return ijkPointPeriodic(pAxesPoints, index);
+        };
+    public:
+		static tSpaceVector positionPoint(const std::vector<double>* pAxesPoints, const int* pIjk) {
 			// Compute ijkPeriodic
-			TypeContainer<int> ijkPeriodic(ijk.size());
-			TypeContainer<int> ijkDiv(ijk.size());
-			for(std::size_t i = 0; i < nPoints.size(); i++) {
-				ijkPeriodic[i] = std::abs(ijk[i]) % nPoints[i];
-				ijkDiv[i] = std::abs(ijk[i]) / nPoints[i];
-				if(ijk[i] < 0) {
-					ijkPeriodic[i] = nPoints[i] - ijkPeriodic[i];
+			std::vector<int> ijkPeriodic(Dim);
+			std::vector<int> ijkDiv(Dim);
+			for(std::size_t i = 0; i < Dim; i++) {
+				ijkPeriodic[i] = std::abs(pIjk[i]) % (pAxesPoints[i].size() - 1);
+				ijkDiv[i] = std::abs(pIjk[i]) / (pAxesPoints[i].size() - 1);
+				if(pIjk[i] < 0) {
+					ijkPeriodic[i] = pAxesPoints[i].size() - 1 - ijkPeriodic[i];
 					ijkDiv[i] = -ijkDiv[i] - 1;
 				}
 			}
 			// Compute position
-			TypeVector position;
-			for(std::size_t i = 0; i < nPoints.size(); i++) {
-				position[i] = gridPoints[i][ijkPeriodic[i]] + ijkDiv[i] * length[i];
+			tSpaceVector position;
+			for(std::size_t i = 0; i < Dim; i++) {
+				const double axisLength = pAxesPoints[i][pAxesPoints[i].size() - 1] - pAxesPoints[i][0];
+				position[i] = pAxesPoints[i][ijkPeriodic[i]] + ijkDiv[i] * axisLength;
 			}
 			return position;
 		};
-		TypeVector positionCell(const TypeContainer<int>& ijk) const override {
-			// Compute ijkPeriodic
-			TypeContainer<int> ijkPeriodic(ijk.size());
-			TypeContainer<int> ijkDiv(ijk.size());
-			for(std::size_t i = 0; i < nCells.size(); i++) {
-				ijkPeriodic[i] = std::abs(ijk[i]) % nCells[i];
-				ijkDiv[i] = std::abs(ijk[i]) / nCells[i];
-				if(ijk[i] < 0) {
-					ijkPeriodic[i] = nCells[i] - ijkPeriodic[i];
-					ijkDiv[i] = -ijkDiv[i] - 1;
-				}
+		
+		static tSpaceVector positionCell(const std::vector<double>* pAxesPoints, const int* pIjk) {
+			std::vector<int> ijkPlusOne(Dim);
+			for(std::size_t i = 0; i < Dim; i++) {
+				ijkPlusOne[i] = pIjk[i] + 1;
 			}
-			// Compute position
-			TypeVector position;
-			for(std::size_t i = 0; i < nCells.size(); i++) {
-				position[i] = gridCells[i][ijkPeriodic[i]] + ijkDiv[i] * length[i];
-			}
-			return position;
+			const tSpaceVector positionPointIjk = positionPoint(pAxesPoints, pIjk);
+			const tSpaceVector positionPointIjkPlusOne = positionPoint(pAxesPoints, ijkPlusOne.data());
+			return 0.5 * (positionPointIjk + positionPointIjkPlusOne);
 		};
-		using TypeInherited::ijkPoint;
-		using TypeInherited::ijkCell;
-		TypeContainer<int> ijkPoint(const TypeRef<const TypeVector>& position) const override {
-			// Compute positionPeriodic
-			TypeVector positionPeriodic;
-			TypeContainer<int> positionDiv(positionPeriodic.size());
-			for(std::size_t i = 0; i < nPoints.size(); i++) {
-				positionPeriodic[i] = std::fmod(std::abs(position[i] - origin[i]), length[i]);
-				positionDiv[i] = std::floor(std::abs(position[i] - origin[i]) / length[i]);
-				if(position[i] < origin[i]) {
-					positionPeriodic[i] = length[i] - positionPeriodic[i];
-					positionDiv[i] = -positionDiv[i] - 1;
-				}
-				positionPeriodic[i] += origin[i];
-			}
-			// Compute index
-			TypeContainer<int> ijk_(nPoints.size());
-			for(std::size_t i = 0; i < nPoints.size(); i++) {
-				ijk_[i] = std::distance(gridCells[i].begin(), std::lower_bound(gridCells[i].begin(), gridCells[i].end(), positionPeriodic[i])) + positionDiv[i] * nPoints[i];
-			}
-			return ijk_;
+
+		static tSpaceVector positionPoint(const std::vector<double>* pAxesPoints, const unsigned int p_index) {
+			const std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+			const std::vector<int> _ijk = tBase::ijk(_nbPointsPerAxis.data(), p_index);
+			return positionPoint(pAxesPoints, _ijk.data());
 		};
-		TypeContainer<int> ijkCell(const TypeRef<const TypeVector>& position) const override {
-			// Compute positionPeriodic
-			TypeVector positionPeriodic;
-			TypeContainer<int> positionDiv(positionPeriodic.size());
-			for(std::size_t i = 0; i < nCells.size(); i++) {
-				positionPeriodic[i] = std::fmod(std::abs(position[i] - origin[i]), length[i]);
-				positionDiv[i] = std::floor(std::abs(position[i] - origin[i]) / length[i]);
-				if(position[i] < origin[i]) {
-					positionPeriodic[i] = length[i] - positionPeriodic[i];
-					positionDiv[i] = -positionDiv[i] - 1;
-				}
-				positionPeriodic[i] += origin[i];
-			}
-			// Compute index
-			TypeContainer<int> ijk_(nCells.size());
-			for(std::size_t i = 0; i < nCells.size(); i++) {
-				ijk_[i] = std::distance(gridPoints[i].begin(), std::lower_bound(gridPoints[i].begin(), gridPoints[i].end(), positionPeriodic[i])) - 1 + positionDiv[i] * nCells[i];
-			}
-			return ijk_;
+
+		static tSpaceVector positionPointPeriodic(const std::vector<double>* pAxesPoints, const unsigned int p_index) {
+			const std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+			const std::vector<unsigned int> _nbCellsPerAxis = tBase::nbCellsPerAxis(_nbPointsPerAxis.data());
+			const std::vector<int> _ijk = tBase::ijk(_nbCellsPerAxis.data(), p_index);
+			return positionPoint(pAxesPoints, _ijk.data());
 		};
+
+		static tSpaceVector positionCell(const std::vector<double>* pAxesPoints, const unsigned int p_index) {
+			const std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+			const std::vector<unsigned int> _nbCellsPerAxis = tBase::nbCellsPerAxis(_nbPointsPerAxis.data());
+			const std::vector<int> _ijk = tBase::ijk(_nbCellsPerAxis.data(), p_index);
+			return positionCell(pAxesPoints, _ijk.data());
+		};
+
 	public:
-		TypeContainer<TypeContainer<double>> gridPoints;
-		TypeContainer<TypeContainer<double>> gridCells;
-		// inherited
-		using TypeInherited::nPoints;
-		using TypeInherited::nCells;
-		using TypeInherited::length;
-		using TypeInherited::origin;
-		using TypeInherited::periodic;
+		static std::vector<int> ijkCell(const std::vector<double>* pAxesPoints, const double* pPosition) {
+			// Compute positionPeriodic
+			tSpaceVector positionPeriodic;
+			std::vector<int> positionDiv(Dim);
+			for(std::size_t i = 0; i < Dim; i++) {
+				const double axisOrigin = pAxesPoints[i][0];
+				const double axisLength = pAxesPoints[i][pAxesPoints[i].size() - 1] - pAxesPoints[i][0];
+				positionPeriodic[i] = std::fmod(std::abs(pPosition[i] - axisOrigin), axisLength);
+				positionDiv[i] = std::floor(std::abs(pPosition[i] - axisOrigin) / axisLength);
+				if(pPosition[i] < axisOrigin) {
+					positionPeriodic[i] = axisLength - positionPeriodic[i];
+					positionDiv[i] = -positionDiv[i] - 1;
+				}
+				positionPeriodic[i] += axisOrigin;
+			}
+			// Compute index
+			std::vector<int> ijk_(Dim);
+			for(std::size_t i = 0; i < Dim; i++) {
+				ijk_[i] = std::distance(pAxesPoints[i].begin(), std::upper_bound(pAxesPoints[i].begin(), pAxesPoints[i].end(), positionPeriodic[i])) - 1 + positionDiv[i] * (pAxesPoints[i].size() - 1);
+			}
+			return ijk_;
+		};
+
+		static unsigned int indexCell(const std::vector<double>* pAxesPoints, const double* pPosition) {
+        	const std::vector<unsigned int> _nbPointsPerAxis = nbPointsPerAxis(pAxesPoints);
+        	const std::vector<int> _ijkCell = ijkCell(pAxesPoints, pPosition);
+            return tBase::indexCell(_nbPointsPerAxis.data(), _ijkCell.data());
+        };
 };
 
 }

@@ -9,89 +9,66 @@
 
 namespace m0sh {
 
-template<typename TypeVector, template<typename...> class TypeRef, template<typename...> class TypeContainer>
-class Uniform : public Structured<TypeVector, TypeRef, TypeContainer> {
+template<typename _tSpaceVector, template<typename...> class _tView, unsigned int _Dim>
+class Uniform : public Structured<_tSpaceVector, _tView, _Dim> {
     public:
-        using TypeInherited = Structured<TypeVector, TypeRef, TypeContainer>;
+        using tBase = Structured<_tSpaceVector, _tView, _Dim>;
+   		using tSpaceVector = typename tBase::tSpaceVector;
+   		template<typename... Args> using tView = typename tBase::tView<Args...>;
+   	public:
+   		using tBase::Dim;
     public:
-        Uniform(const TypeContainer<std::size_t>& p_nCells, const TypeContainer<double>& p_length, const TypeVector& p_origin, const TypeContainer<bool>& p_periodic) {
-            // copy
-            nCells = p_nCells;
-            length = p_length;
-            origin = p_origin;
-            periodic = p_periodic;
-            // nPoints
-            nPoints.resize(nCells.size());
-            for(unsigned int i = 0; i < nCells.size(); i++) {
-                if(periodic[i]) {
-                    nPoints[i] = nCells[i];
-                } else {
-                    nPoints[i] = nCells[i] + 1;
-                } 
-            }
-            // spacing between points
-            spacing.resize(nCells.size());
-            for(std::size_t i = 0; i < nCells.size(); i++) {
-                spacing[i] = length[i] / nCells[i];
-            }
+    	Uniform(){
+    		
+    	};
+   	public:
+    	static unsigned int indexPoint(const unsigned int* pNbPointsPerAxis, const int* pIjk) {
+            return tBase::index(pNbPointsPerAxis, pIjk);
         };
+        static unsigned int indexCell(const unsigned int* pNbPointsPerAxis, const int* pIjk) {
+			const std::vector<unsigned int> _nbCellsPerAxis = tBase::nbCellsPerAxis(pNbPointsPerAxis);
+           	return tBase::index(_nbCellsPerAxis.data(), pIjk);
+       	};
     public:
-        using TypeInherited::positionPoint;
-        using TypeInherited::positionCell;
-        TypeVector positionPoint(const TypeContainer<int>& ijk) const override {
-            TypeVector position;
-            for(std::size_t i = 0; i < spacing.size(); i++) {
-                position[i] = ijk[i] * spacing[i];
-                //if(periodic[i]) {
-                //    if(position[i] < 0.0) {
-                //        position[i] = length[i] - std::fmod(std::abs(position[i]), length[i]);
-                //    } else {
-                //        position[i] = std::fmod(std::abs(position[i]), length[i]);
-                //    }
-                //}
-                position[i] += origin[i];
+        static tSpaceVector positionPoint(const double* pOrigin, const double* pSpacing, const int* pIjk) {
+            tSpaceVector position;
+            for(std::size_t i = 0; i < Dim; i++) {
+                position[i] = pOrigin[i] + pIjk[i] * pSpacing[i];
             }
             return position;
         };
-        TypeVector positionCell(const TypeContainer<int>& ijk) const override {
-            TypeVector position;
-            for(std::size_t i = 0; i < spacing.size(); i++) {
-                position[i] = ijk[i] * spacing[i] + 0.5 * spacing[i];
-                //if(periodic[i]) {
-                //    if(position[i] < 0.0) {
-                //        position[i] = length[i] - std::fmod(std::abs(position[i]), length[i]);
-                //    } else {
-                //        position[i] = std::fmod(std::abs(position[i]), length[i]);
-                //    }
-                //}
-                position[i] += origin[i];
+        
+        static tSpaceVector positionCell(const double* pOrigin, const double* pSpacing, const int* pIjk) {
+            tSpaceVector position;
+            for(std::size_t i = 0; i < Dim; i++) {
+                position[i] = pOrigin[i] + pIjk[i] * pSpacing[i] + 0.5 * pSpacing[i];
             }
             return position;
         };
-        using TypeInherited::ijkPoint;
-        using TypeInherited::ijkCell;
-        TypeContainer<int> ijkPoint(const TypeRef<const TypeVector>& position) const override {
-            TypeContainer<int> ijk_(nPoints.size());
-            for(std::size_t i = 0; i < nPoints.size(); i++) {
-                ijk_[i] = std::floor((position[i] - origin[i] + 0.5 * spacing[i]) / spacing[i]);
+
+        static tSpaceVector positionPoint(const double* pOrigin, const double* pSpacing, const unsigned int* pNbPointsPerAxis, const unsigned int p_index) {
+            return positionPoint(pOrigin, pSpacing, tBase::ijk(pNbPointsPerAxis, p_index));
+        };
+        
+        static tSpaceVector positionCell(const double* pOrigin, const double* pSpacing, const unsigned int* pNbPointsPerAxis, const unsigned int p_index) {
+        	std::vector<int> nbCellsPerAxis = tBase::nbCellsPerAxis(pNbPointsPerAxis);
+            return positionCell(pOrigin, pSpacing, tBase::ijk(nbCellsPerAxis.data(), p_index));
+        };
+        
+   public:
+        static std::vector<int> ijkCell(const double* pOrigin, const double* pSpacing, const double* pPosition) {
+            std::vector<int> ijk_(Dim);
+            for(std::size_t i = 0; i < Dim; i++) {
+                ijk_[i] = std::floor((pPosition[i] - pOrigin[i]) / pSpacing[i]);
             }
             return ijk_;
         };
-        TypeContainer<int> ijkCell(const TypeRef<const TypeVector>& position) const override {
-            TypeContainer<int> ijk_(nCells.size());
-            for(std::size_t i = 0; i < nCells.size(); i++) {
-                ijk_[i] = std::floor((position[i] - origin[i]) / spacing[i]);
-            }
-            return ijk_;
+
+        static unsigned int indexCell(const double* pOrigin, const double* pSpacing, const unsigned int* pNbPointsPerAxis, const double* pPosition) {
+        	const std::vector<int> _ijkCell = ijkCell(pOrigin, pSpacing, pPosition);
+        	const std::vector<unsigned int> _nbCellsPerAxis = tBase::nbCellsPerAxis(pNbPointsPerAxis);
+            return tBase::index(_nbCellsPerAxis.data(), _ijkCell.data());
         };
-    public:
-        TypeContainer<double> spacing;
-        // inherited
-        using Structured<TypeVector, TypeRef, TypeContainer>::nPoints;
-        using Structured<TypeVector, TypeRef, TypeContainer>::nCells;
-        using Structured<TypeVector, TypeRef, TypeContainer>::length;
-        using Structured<TypeVector, TypeRef, TypeContainer>::origin;
-        using Structured<TypeVector, TypeRef, TypeContainer>::periodic;
 };
 
 }

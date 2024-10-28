@@ -38,7 +38,7 @@ void print(const std::shared_ptr<TypeSub>& sMesh, std::uniform_int_distribution<
     x = sMesh->positionPoint(ijk);
     index = sMesh->indexPoint(ijk);
     std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << "\nindex: " << index << "\nx: " << x.transpose() << std::endl;
-    ijk = sMesh->ijkPoint(x);
+    ijk = sMesh->ijkPoint(x.data());
     std::cout << "xReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
     ijk = sMesh->ijkPoint(index);
     std::cout << "indexReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;

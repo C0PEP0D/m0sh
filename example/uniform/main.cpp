@@ -7,45 +7,39 @@
 // lib includes
 #include "m0sh/uniform.h"
 
-using TypeScalar = double;
+using tScalar = double;
 // Space
 const unsigned int DIM = 3;
-using TypeVector = Eigen::Matrix<TypeScalar, DIM, 1>;
-template<typename ...Args>
-using TypeRef = Eigen::Ref<Args...>;
+using tSpaceVector = Eigen::Matrix<tScalar, DIM, 1>;
+template<typename ...Args> using tView = Eigen::Map<Args...>;
 // Mesh
-template<typename ...Args>
-using TypeContainer = std::vector<Args...>;
-using TypeMesh = m0sh::Uniform<TypeVector, TypeRef, TypeContainer>;
-// Data
-const int nc = 100;
-const double length = 1.0;
-const double origin = 0.5;
+using tMesh = m0sh::Uniform<tSpaceVector, tView, DIM>;
+// Random setup
+const int n = 100;
+std::random_device r;
+std::default_random_engine e(r());
+std::uniform_int_distribution<int> uniform(-n, 2*n);
 
-void print(const TypeMesh& mesh, std::uniform_int_distribution<int>& uniform, std::default_random_engine& e) {
-    TypeContainer<int> ijk;
-    TypeVector x;
-    std::size_t index;
+void print(const double* pOrigin, const double* pSpacing, const unsigned int* pNbPointsPerAxis) {
+    std::vector<int> ijk = {uniform(e), uniform(e), uniform(e)};
+    tSpaceVector x = tMesh::positionPoint(pOrigin, pSpacing, ijk.data());
+    unsigned int index = tMesh::indexPoint(pNbPointsPerAxis, ijk.data());
     // Print info
-    ijk = {uniform(e), uniform(e), uniform(e)};
-    x = mesh.positionPoint(ijk);
-    index = mesh.indexPoint(ijk);
     std::cout << "i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << "\nindex: " << index << "\nx: " << x.transpose() << std::endl;
-    ijk = mesh.ijkPoint(x);
+    ijk = tMesh::ijkCell(pOrigin, pSpacing, x.data());
     std::cout << "xReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
-    ijk = mesh.ijkPoint(index);
+    ijk = tMesh::ijkPoint(pNbPointsPerAxis, index);
     std::cout << "indexReverse: " << " i: " << ijk[0] << " j: " << ijk[1] << " k: " << ijk[2] << std::endl;
     std::cout << std::endl;
 }
 
-int main () { 
-    TypeMesh mesh(TypeContainer<std::size_t>(DIM, nc), TypeContainer<double>(DIM, length), TypeVector::Constant(origin), TypeContainer<bool>(DIM, false));
-    // Random setup
-    std::random_device r;
-    std::default_random_engine e(r());
-    std::uniform_int_distribution<int> uniform(-nc, 2*nc);
+int main () {
+	// Mesh
+	const tSpaceVector origin = tSpaceVector::Constant(0.0);
+	const tSpaceVector spacing = tSpaceVector::Constant(1.0);
+	const std::vector<unsigned int> nbPointsPerAxis = {n, n, n};
     // Print
-    print(mesh, uniform, e);
-    print(mesh, uniform, e);
-    print(mesh, uniform, e);
+    print(origin.data(), spacing.data(), nbPointsPerAxis.data());
+    print(origin.data(), spacing.data(), nbPointsPerAxis.data());
+    print(origin.data(), spacing.data(), nbPointsPerAxis.data());
 }
